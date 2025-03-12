@@ -47,7 +47,7 @@ const JsonGenerator = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center  px-4 ">
-      <div className="w-full  bg-white shadow-xl rounded-2xl px-6 ">
+      <div className="w-full   bg-white shadow-xl rounded-2xl px-6 ">
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">
           Enter Item Details
         </h2>
@@ -81,7 +81,7 @@ const JsonGenerator = () => {
               </div>
             </div>
 
-            <div className="mt-4 z-50 space-y-6 max-h-96 overflow-auto">
+            <div className="mt-4 z-50 space-y-6 max-h-96 pb-3 overflow-auto">
               {items.map((item, index) => (
                 <div
                   key={index}
