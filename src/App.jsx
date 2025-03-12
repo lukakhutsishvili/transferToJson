@@ -1,16 +1,16 @@
 import { useState } from 'react'
 import JsonGenerator from './components/JsonGenerator'
+import { Route, Router, Routes } from 'react-router-dom';
+
 
 function App() {
   const [count, setCount] = useState(0)
 
   return (
-    <>
-    <div className='min-h-screen'>
-    <JsonGenerator/>
-    </div>
-    </>
-  )
+      <Routes>
+        <Route path="/" element={<JsonGenerator />} />
+      </Routes>
+  );
 }
 
 export default App
