@@ -1,15 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const createNewItem = () => ({
-  id: crypto.randomUUID(), // Unique ID for each item
-  description: "1",
-  length: "1",
-  width: "1",
-  height: "1",
-  weight: "1",
-});
-
 const JsonGenerator = () => {
   const [items, setItems] = useState([]);
   const [totalParcel, setTotalParcel] = useState("");
@@ -17,15 +8,23 @@ const JsonGenerator = () => {
   const scrollRef = useRef(null);
 
   const handleTotalParcelChange = (e) => {
-    const value = e.target.value;
-    setTotalParcel(value ? Number(value) : "");
+    let value = Number(e.target.value);
+    if (value > 10) value = 10; // Restrict to max 10
+    setTotalParcel(value ? value : "");
   };
-
   const handleGenerateItems = useCallback(() => {
-    const count = Number(totalParcel);
+    let count = Number(totalParcel);
     if (!count || count <= 0) return;
 
-    const generatedItems = Array.from({ length: count }, () => createNewItem());
+    count = Math.min(count, 10); // Ensure max limit of 10
+    const generatedItems = Array.from({ length: count }, (_, index) => ({
+      id: crypto.randomUUID(),
+      description: (index + 1).toString(),
+      length: "1",
+      width: "1",
+      height: "1",
+      weight: "1",
+    }));
     setItems(generatedItems);
     setShouldScroll(false);
   }, [totalParcel]);
@@ -46,17 +45,20 @@ const JsonGenerator = () => {
   const handleDeleteAllItems = () => setItems([]);
 
   const handleAddItem = () => {
-    setItems((prevItems) => [
-      ...prevItems,
-      {
-        id: crypto.randomUUID(), // Unique ID for each item
-        description: "",
-        length: "",
-        width: "",
-        height: "",
-        weight: "",
-      },
-    ]);
+    setItems((prevItems) => {
+      if (prevItems.length >= 10) return prevItems; // Prevent more than 10 items
+      return [
+        ...prevItems,
+        {
+          id: crypto.randomUUID(),
+          description: "",
+          length: "",
+          width: "",
+          height: "",
+          weight: "",
+        },
+      ];
+    });
     setShouldScroll(true);
   };
 
