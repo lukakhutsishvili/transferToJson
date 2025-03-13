@@ -189,7 +189,7 @@ const JsonGenerator = () => {
         <div className="flex gap-2 mt-6">
           <button
             onClick={handleAddItem}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg shadow-md hover:bg-blue-700 transition"
+            className="bg-yellow-500 text-white px-6 py-3 rounded-lg shadow-md hover:bg-yellow-600 transition"
           >
             + Add One
           </button>
