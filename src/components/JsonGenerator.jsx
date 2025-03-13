@@ -62,7 +62,7 @@ const JsonGenerator = () => {
   }, [items]);
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4 py-10">
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4 pt-10">
       <div className="w-full bg-white shadow-xl rounded-2xl px-6 py-8">
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">
           Enter Item Details
@@ -130,7 +130,7 @@ const JsonGenerator = () => {
               </h2>
               <button
                 onClick={handleCopyJson}
-                className="absolute top-4 right-4 bg-blue-600 text-white px-3 py-2 rounded shadow-md hover:bg-blue-700 transition"
+                className="absolute top-1 right-4 bg-blue-600 text-white px-3 py-2 rounded shadow-md hover:bg-blue-700 transition"
               >
                 Copy JSON
               </button>
