@@ -1,16 +1,19 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
-const initialItem = {
-  description: "",
-  length: "",
-  width: "",
-  height: "",
-  weight: "",
-};
+const createNewItem = () => ({
+  id: crypto.randomUUID(), // Unique ID for each item
+  description: "1",
+  length: "1",
+  width: "1",
+  height: "1",
+  weight: "1",
+});
 
 const JsonGenerator = () => {
   const [items, setItems] = useState([]);
   const [totalParcel, setTotalParcel] = useState("");
+  const [shouldScroll, setShouldScroll] = useState(false);
   const scrollRef = useRef(null);
 
   const handleTotalParcelChange = (e) => {
@@ -22,44 +25,56 @@ const JsonGenerator = () => {
     const count = Number(totalParcel);
     if (!count || count <= 0) return;
 
-    const generatedItems = Array.from({ length: count }, (_, index) => ({
-      description: `${index + 1}`,
-      length: "1",
-      width: "1",
-      height: "1",
-      weight: "1",
-    }));
-
+    const generatedItems = Array.from({ length: count }, () => createNewItem());
     setItems(generatedItems);
+    setShouldScroll(false);
   }, [totalParcel]);
 
-  const handleItemChange = useCallback((index, e) => {
+  const handleItemChange = useCallback((id, e) => {
     const { name, value } = e.target;
     setItems((prevItems) =>
-      prevItems.map((item, i) =>
-        i === index ? { ...item, [name]: value } : item
+      prevItems.map((item) =>
+        item.id === id ? { ...item, [name]: value } : item
       )
     );
+  }, []);
+
+  const handleDeleteItem = useCallback((id) => {
+    setItems((prevItems) => prevItems.filter((item) => item.id !== id));
   }, []);
 
   const handleDeleteAllItems = () => setItems([]);
 
   const handleAddItem = () => {
-    setItems((prevItems) => [...prevItems, initialItem]);
+    setItems((prevItems) => [
+      ...prevItems,
+      {
+        id: crypto.randomUUID(), // Unique ID for each item
+        description: "",
+        length: "",
+        width: "",
+        height: "",
+        weight: "",
+      },
+    ]);
+    setShouldScroll(true);
   };
 
-  const handleDeleteLastItem = () => setItems(items.slice(0, -1));
-
   const handleCopyJson = () => {
-    navigator.clipboard.writeText(JSON.stringify(items, null, 2));
+    const jsonWithoutId = items.map(({ id, ...rest }) => rest); // Remove 'id' field
+    navigator.clipboard.writeText(JSON.stringify(jsonWithoutId, null, 2));
     alert("Copied to clipboard!");
   };
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (shouldScroll && scrollRef.current) {
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+      setShouldScroll(false);
     }
-  }, [items]);
+  }, [items, shouldScroll]);
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4 pt-10">
@@ -68,8 +83,8 @@ const JsonGenerator = () => {
           Enter Item Details
         </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2">
             <div className="flex gap-2 items-end">
               <button
                 onClick={handleGenerateItems}
@@ -96,30 +111,54 @@ const JsonGenerator = () => {
               ref={scrollRef}
               className="mt-4 space-y-6 max-h-[292px] pb-3 overflow-auto"
             >
-              {items.map((item, index) => (
-                <div key={index} className="rounded-lg">
-                  <h3 className="font-semibold text-gray-700 mb-3">
-                    ITEM {index + 1}
-                  </h3>
-                  <div className="grid grid-cols-5 gap-4">
-                    {Object.keys(initialItem).map((field) => (
-                      <div key={field} className="relative">
-                        <input
-                          type={field === "description" ? "text" : "number"}
-                          name={field}
-                          value={item[field]}
-                          onChange={(e) => handleItemChange(index, e)}
-                          className="border-b-2 border-gray-300 p-2 w-full outline-none focus:border-blue-400 peer transition"
-                          placeholder=" "
-                        />
-                        <label className="absolute left-0 peer-focus:-top-4 peer-focus:text-xs peer-focus:text-gray-500 peer-placeholder-shown:top-2 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 -top-4 text-xs text-gray-500 transition-all duration-200 pointer-events-none">
-                          {field.charAt(0).toUpperCase() + field.slice(1)}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
+              <AnimatePresence>
+                {items.map((item, index) => (
+                  <motion.div
+                    key={item.id} // Unique key prevents animation glitch
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                    className="rounded-lg pr-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-gray-700 mb-3">
+                        ITEM {index + 1}
+                      </h3>
+                      <button
+                        onClick={() => handleDeleteItem(item.id)}
+                        className="text-red-500 hover:text-red-700"
+                        title="Delete Item"
+                      >
+                        🗑
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-5 gap-4">
+                      {[
+                        "description",
+                        "length",
+                        "width",
+                        "height",
+                        "weight",
+                      ].map((field) => (
+                        <div key={field} className="relative">
+                          <input
+                            type={field === "description" ? "text" : "number"}
+                            name={field}
+                            value={item[field]}
+                            onChange={(e) => handleItemChange(item.id, e)}
+                            className="border-b-2 border-gray-300 p-2 w-full outline-none focus:border-blue-400 peer transition"
+                            placeholder=" "
+                          />
+                          <label className="absolute left-0 peer-focus:-top-4 peer-focus:text-xs peer-focus:text-gray-500 peer-placeholder-shown:top-2 peer-placeholder-shown:text-base peer-placeholder-shown:text-gray-400 -top-4 text-xs text-gray-500 transition-all duration-200 pointer-events-none">
+                            {field.charAt(0).toUpperCase() + field.slice(1)}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           </div>
 
@@ -135,7 +174,11 @@ const JsonGenerator = () => {
                 Copy JSON
               </button>
               <pre className="bg-gray-200 p-6 rounded-lg text-base border border-gray-300 overflow-auto">
-                {JSON.stringify(items, null, 2)}
+                {JSON.stringify(
+                  items.map(({ id, ...rest }) => rest),
+                  null,
+                  2
+                )}
               </pre>
             </div>
           )}
@@ -147,12 +190,6 @@ const JsonGenerator = () => {
             className="bg-blue-600 text-white px-6 py-3 rounded-lg shadow-md hover:bg-blue-700 transition"
           >
             + Add One
-          </button>
-          <button
-            onClick={handleDeleteLastItem}
-            className="bg-red-500 text-white px-6 py-3 rounded-lg shadow-md hover:bg-red-600 transition"
-          >
-            - Delete Last
           </button>
           <button
             onClick={handleDeleteAllItems}
