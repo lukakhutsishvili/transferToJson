@@ -51,11 +51,11 @@ const JsonGenerator = () => {
         ...prevItems,
         {
           id: crypto.randomUUID(),
-          description: "",
-          length: "",
-          width: "",
-          height: "",
-          weight: "",
+          description: prevItems.length + 1,
+          length: "1",
+          width: "1",
+          height: "1",
+          weight: "1",
         },
       ];
     });
