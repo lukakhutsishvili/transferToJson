@@ -62,10 +62,17 @@ const JsonGenerator = () => {
     setShouldScroll(true);
   };
 
-  const handleCopyJson = () => {
-    const jsonWithoutId = items.map(({ id, ...rest }) => rest); // Remove 'id' field
-    navigator.clipboard.writeText(JSON.stringify(jsonWithoutId, null, 2));
-    alert("Copied to clipboard!");
+  const handleCopyJson = async () => {
+    try {
+      const jsonWithoutId = items.map(({ id, ...rest }) => rest); // Remove 'id' field
+      await navigator.clipboard.writeText(
+        JSON.stringify(jsonWithoutId, null, 2)
+      );
+      alert("Copied to clipboard!");
+    } catch (error) {
+      console.error("Failed to copy:", error);
+      alert("Failed to copy. Please try again.");
+    }
   };
 
   useEffect(() => {
