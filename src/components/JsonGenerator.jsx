@@ -6,7 +6,6 @@ const JsonGenerator = () => {
   const [totalParcel, setTotalParcel] = useState("");
   const [shouldScroll, setShouldScroll] = useState(false);
   const scrollRef = useRef(null);
-  const [needsScroll, setNeedsScroll] = useState(false);
 
   const handleTotalParcelChange = (e) => {
     let value = Number(e.target.value);
@@ -77,17 +76,14 @@ const JsonGenerator = () => {
   };
 
   useEffect(() => {
-    const scrollEl = scrollRef.current;
-    if (!scrollEl) return;
-
-    const observer = new ResizeObserver(() => {
-      setNeedsScroll(scrollEl.scrollHeight > scrollEl.clientHeight);
-    });
-
-    observer.observe(scrollEl);
-
-    return () => observer.disconnect();
-  }, [items]);
+    if (shouldScroll && scrollRef.current) {
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+      setShouldScroll(false);
+    }
+  }, [items, shouldScroll]);
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4 pt-10">
@@ -122,9 +118,7 @@ const JsonGenerator = () => {
 
             <div
               ref={scrollRef}
-              className={`mt-4 space-y-6 pb-3 ${
-                needsScroll ? "overflow-auto max-h-[292px]" : "overflow-visible"
-              }`}
+              className={`mt-4 space-y-6 pb-3 ${"overflow-auto max-h-[292px]"}`}
             >
               <AnimatePresence>
                 {items.map((item, index) => (
