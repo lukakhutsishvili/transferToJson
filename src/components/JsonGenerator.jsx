@@ -6,6 +6,7 @@ const JsonGenerator = () => {
   const [totalParcel, setTotalParcel] = useState("");
   const [shouldScroll, setShouldScroll] = useState(false);
   const scrollRef = useRef(null);
+  const [needsScroll, setNeedsScroll] = useState(false);
 
   const handleTotalParcelChange = (e) => {
     let value = Number(e.target.value);
@@ -76,18 +77,21 @@ const JsonGenerator = () => {
   };
 
   useEffect(() => {
-    if (shouldScroll && scrollRef.current) {
-      scrollRef.current.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: "smooth",
-      });
-      setShouldScroll(false);
-    }
-  }, [items, shouldScroll]);
+    const scrollEl = scrollRef.current;
+    if (!scrollEl) return;
+
+    const observer = new ResizeObserver(() => {
+      setNeedsScroll(scrollEl.scrollHeight > scrollEl.clientHeight);
+    });
+
+    observer.observe(scrollEl);
+
+    return () => observer.disconnect();
+  }, [items]);
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4 pt-10">
-      <div className="w-full bg-white shadow-xl rounded-2xl px-6 py-8">
+      <div className="w-full h-[580px] flex flex-col bg-white shadow-xl rounded-2xl px-6 py-8">
         <h2 className="text-3xl font-bold text-center text-gray-800 mb-6">
           Enter Item Details
         </h2>
@@ -118,12 +122,14 @@ const JsonGenerator = () => {
 
             <div
               ref={scrollRef}
-              className="mt-4 space-y-6 max-h-[292px] pb-3 overflow-auto"
+              className={`mt-4 space-y-6 pb-3 ${
+                needsScroll ? "overflow-auto max-h-[292px]" : "overflow-visible"
+              }`}
             >
               <AnimatePresence>
                 {items.map((item, index) => (
                   <motion.div
-                    key={item.id} // Unique key prevents animation glitch
+                    key={item.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
@@ -193,7 +199,7 @@ const JsonGenerator = () => {
           )}
         </div>
 
-        <div className="flex gap-2 mt-6">
+        <div className="flex gap-2 mt-auto">
           <button
             onClick={handleAddItem}
             className="bg-yellow-500 text-white px-6 py-3 rounded-lg shadow-md hover:bg-yellow-600 transition"
