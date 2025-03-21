@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import ExcelToJson from "./ExcelReader";
 
 const JsonGenerator = () => {
   const [items, setItems] = useState([]);
@@ -208,6 +209,8 @@ const JsonGenerator = () => {
           </button>
         </div>
       </div>
+
+      <ExcelToJson />
     </div>
   );
 };
