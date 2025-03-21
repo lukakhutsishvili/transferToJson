@@ -99,20 +99,30 @@ function ExcelReader() {
   };
 
   return (
-    <div>
-      <input
-        type="file"
-        accept=".xlsx, .xls, .csv"
-        onChange={handleFileUpload}
-      />
-
-      <div>
-        <h3>Generated JSON:</h3>
+    <div className="pt-2  font-sans">
+      <div className="mb-6">
+        <label
+          htmlFor="file-upload"
+          className="inline-block px-4 py-2 bg-blue-500 text-white rounded cursor-pointer border-none"
+        >
+          Choose File (XLSX, XLS, CSV)
+        </label>
+        <input
+          id="file-upload"
+          type="file"
+          accept=".xlsx, .xls, .csv"
+          onChange={handleFileUpload}
+          className="hidden"
+        />
       </div>
 
-      <button onClick={exportToExcel}>Export to Excel</button>
+      <button
+        onClick={exportToExcel}
+        className="px-3 py-2 bg-green-500 text-white rounded cursor-pointer border-none text-lg"
+      >
+        Export to Excel
+      </button>
     </div>
   );
 }
-
 export default ExcelReader;

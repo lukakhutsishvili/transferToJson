@@ -208,9 +208,8 @@ const JsonGenerator = () => {
             🗑 Delete All
           </button>
         </div>
+        <ExcelToJson />
       </div>
-
-      <ExcelToJson />
     </div>
   );
 };
