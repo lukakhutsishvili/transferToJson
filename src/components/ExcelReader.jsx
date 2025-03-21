@@ -99,7 +99,7 @@ function ExcelReader() {
   };
 
   return (
-    <div className="pt-2  font-sans">
+    <div className="pt-2  flex font-sans">
       <div className="mb-6">
         <label
           htmlFor="file-upload"
@@ -118,7 +118,7 @@ function ExcelReader() {
 
       <button
         onClick={exportToExcel}
-        className="px-3 py-2 bg-green-500 text-white rounded cursor-pointer border-none text-lg"
+        className="px-3 ml-3 mb-6 bg-green-500 text-white rounded cursor-pointer border-none text-lg"
       >
         Export to Excel
       </button>
