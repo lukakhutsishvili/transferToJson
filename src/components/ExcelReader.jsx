@@ -1,39 +1,50 @@
 import React, { useState } from "react";
-import * as XLSX from "xlsx";
-import * as FileSaver from "file-saver";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 
 function ExcelReader() {
   const [data, setData] = useState(null);
   const [generatedJson, setGeneratedJson] = useState(null);
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     const reader = new FileReader();
 
-    reader.onload = (event) => {
-      const binaryStr = event.target.result;
-      const workbook = XLSX.read(binaryStr, { type: "binary" });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+    reader.onload = async (event) => {
+      const arrayBuffer = event.target.result;
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(arrayBuffer);
+
+      const worksheet = workbook.getWorksheet(1);
+
+      const jsonData = [];
+      worksheet.eachRow({ includeEmpty: true }, (row, rowNumber) => {
+        const rowData = [];
+        row.eachCell({ includeEmpty: true }, (cell) => {
+          rowData.push(cell.value);
+        });
+        jsonData.push(rowData);
+      });
+
       setData(jsonData);
-      processData(jsonData); // Process the data immediately after reading
+      processData(jsonData);
     };
 
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
   };
 
   const processData = (excelData) => {
     if (!excelData || !Array.isArray(excelData) || excelData.length === 0) {
-      setGeneratedJson([]); // Set empty array if data is invalid
+      setGeneratedJson([]);
       return;
     }
 
     const processedData = excelData.map((row, index) => {
       if (row.length !== 0) {
         if (index > 7) {
-          if (row[row.length - 1] > 1 && row[row.length - 1] < 11) {
-            const number = row[row.length - 1];
+          if (row[21] > 1 && row[21] < 11) {
+            const number = row[21];
+
             const components = [];
             for (let i = 1; i <= number; i++) {
               components.push({
@@ -44,62 +55,76 @@ function ExcelReader() {
                 weight: "1",
               });
             }
-            // Create a copy of row and replace last element
             const newRow = [...row];
-            newRow[row.length - 1] = JSON.stringify(components);
+            newRow[21] = JSON.stringify(components);
             return newRow;
           } else {
-            return row; //Return the row if the last element is not in the range
+            return row;
           }
         } else {
-          return row; //Return the row if index is less then or equal to 7
+          return row;
         }
       } else {
-        return row; //Return the row if the row is empty
+        return row;
       }
     });
     setGeneratedJson(processedData);
   };
 
-  const exportToExcel = () => {
+  console.log(generatedJson);
+  const exportToExcel = async () => {
     if (!generatedJson || generatedJson.length === 0) {
       alert("No data to export.");
       return;
     }
 
-    // Convert JSON strings back to objects before writing to Excel
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("ProcessedData");
+
     const dataToWrite = generatedJson.map((row) => {
       const newRow = [...row];
       if (
         typeof newRow[newRow.length - 1] === "string" &&
+        newRow[newRow.length - 1] &&
         newRow[newRow.length - 1].startsWith("[")
       ) {
         try {
-          // Parse the JSON string
           const parsedJson = JSON.parse(newRow[newRow.length - 1]);
-
-          // Convert the array of objects to a string representation
-          newRow[newRow.length - 1] = JSON.stringify(parsedJson, null, 2); // Format the JSON string with indentation
+          newRow[newRow.length - 1] = JSON.stringify(parsedJson, null, 2);
         } catch (e) {
           console.error("Error parsing JSON string:", e);
-          // If parsing fails, keep the original string
         }
       }
       return newRow;
     });
 
-    const ws = XLSX.utils.aoa_to_sheet(dataToWrite);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "ProcessedData");
-    const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    dataToWrite.forEach((row) => {
+      const excelRow = worksheet.addRow(row);
+      row.forEach((cell, cellIndex) => {
+        excelRow.getCell(cellIndex + 1).numFmt = "@";
+      });
+    });
+
+    // Auto-fit columns to content using ExcelJS
+    worksheet.columns.forEach((column) => {
+      let maxLength = 0;
+      column.eachCell({ includeEmpty: true }, (cell) => {
+        const cellValue = cell.value;
+        const cellLength = cellValue ? cellValue.toString().length : 10;
+        maxLength = Math.max(maxLength, cellLength);
+      });
+      column.width = maxLength < 10 ? 10 : maxLength + 2;
+    });
+
+    const excelBuffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([excelBuffer], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
     });
-    FileSaver.saveAs(blob, "processed_data.xlsx");
+    saveAs(blob, "processed_data.xlsx");
   };
 
   return (
-    <div className="pt-2  flex font-sans">
+    <div className="pt-2 flex font-sans">
       <div className="mb-6">
         <label
           htmlFor="file-upload"
@@ -125,4 +150,5 @@ function ExcelReader() {
     </div>
   );
 }
+
 export default ExcelReader;
