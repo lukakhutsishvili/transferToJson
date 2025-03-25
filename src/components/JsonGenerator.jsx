@@ -1,6 +1,50 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ExcelToJson from "./ExcelReader";
+import { ChevronDown } from "lucide-react"; // Make sure lucide-react is installed
+
+const DropdownCard = ({ title, imageSrc, alt, children }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="bg-white rounded-2xl shadow-md overflow-hidden transition-all duration-300">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between w-full text-left px-6 py-4 hover:bg-gray-100 transition-colors"
+      >
+        <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
+        <motion.div
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <ChevronDown className="w-6 h-6 text-gray-500" />
+        </motion.div>
+      </button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            key="content"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.4 }}
+            className="px-6 pb-6"
+          >
+            <img
+              src={imageSrc}
+              alt={alt}
+              className="w-full rounded-lg object-cover mt-2"
+            />
+            <p className="mt-4 text-gray-600 text-base leading-relaxed">
+              {children}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 const JsonGenerator = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -11,7 +55,7 @@ const JsonGenerator = () => {
 
   const handleTotalParcelChange = (e) => {
     let value = Number(e.target.value);
-    if (value > 10) value = 10; // Restrict to max 10
+    if (value > 10) value = 10;
     setTotalParcel(value ? value : "");
   };
 
@@ -19,7 +63,7 @@ const JsonGenerator = () => {
     let count = Number(totalParcel);
     if (!count || count <= 0) return;
 
-    count = Math.min(count, 10); // Ensure max limit of 10
+    count = Math.min(count, 10);
     const generatedItems = Array.from({ length: count }, (_, index) => ({
       id: crypto.randomUUID(),
       description: (index + 1).toString(),
@@ -49,7 +93,7 @@ const JsonGenerator = () => {
 
   const handleAddItem = () => {
     setItems((prevItems) => {
-      if (prevItems.length >= 10) return prevItems; // Prevent more than 10 items
+      if (prevItems.length >= 10) return prevItems;
       return [
         ...prevItems,
         {
@@ -67,7 +111,7 @@ const JsonGenerator = () => {
 
   const handleCopyJson = async () => {
     try {
-      const jsonWithoutId = items.map(({ id, ...rest }) => rest); // Remove 'id' field
+      const jsonWithoutId = items.map(({ id, ...rest }) => rest);
       await navigator.clipboard.writeText(
         JSON.stringify(jsonWithoutId, null, 2)
       );
@@ -89,8 +133,38 @@ const JsonGenerator = () => {
   }, [items, shouldScroll]);
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center  px-4 pt-10 space-y-4">
-      {/* Toggle Button */}
+    <div className="min-h-screen bg-gray-100 px-4 pt-10 space-y-4">
+      <div className="max-w-7xl space-y-6">
+        <DropdownCard
+          title="კლიენტის მონაცემები"
+          imageSrc="src/assets/image.png"
+          alt="კლიენტის მონაცემები"
+        >
+          თუ აგზავნით სერვისცენტრიდან ამანათს მაშინ აუცილებელია შეავსოთ "sending
+          from serviscenter"(აირჩიოთ სასურველი დელივოს სერვისცენტრი, სადაც
+          შეძლებთ ამანათის მიტანას) თუ არის საკურიერო აუცილებელია შეავსოთ ქალაქი
+          და გამოტანის მისამართი
+        </DropdownCard>
+        <DropdownCard
+          title="მიმღების მონაცემები"
+          imageSrc="src/assets/photo_2025-03-25_13-54-50.jpg"
+          alt="მიმღების მონაცემები"
+        ></DropdownCard>
+        <DropdownCard
+          title="ამანთის მონაცემები"
+          imageSrc="src/assets/photo_2025-03-25_17-19-47.jpg"
+          alt="ამანთის მონაცემები"
+        >
+          თუ ამანათი არის ადგილებიანი შეგიძლიათ დააჭიროთ ღილაკს "show panel",
+          დააგენერიროთ სპეციალური ფორმატი და ჩაწეროთ places ველში თუ უკვე გაქვთ
+          places ველში ჩაწეროთ ციფრი თუ რამდენი ადგილიანი ამანათისგან შედგება,
+          ექსელის ფაილი ატვირთოთ საიტზე "choose file" და შემდეგ "export"(
+          თავისით დააგენერირებს საიტი ადგილებიან ამანათს)
+        </DropdownCard>
+      </div>
+
+      <ExcelToJson />
+
       <button
         onClick={() => setIsOpen((prev) => !prev)}
         className="bg-blue-600 text-white px-6 py-3 rounded-full shadow-md hover:shadow-lg transition transform hover:scale-105 focus:outline-none"
@@ -98,13 +172,12 @@ const JsonGenerator = () => {
         {isOpen ? "Hide Panel" : "Show Panel"}
       </button>
 
-      {/* Animated Panel */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -30 }}
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -30 }}
+            exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.5 }}
             className="w-full"
           >
@@ -231,7 +304,6 @@ const JsonGenerator = () => {
                   🗑 Delete All
                 </button>
               </div>
-              <ExcelToJson />
             </div>
           </motion.div>
         )}
