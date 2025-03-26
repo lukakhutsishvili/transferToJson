@@ -1,13 +1,20 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
 function ExcelReader() {
   const [data, setData] = useState(null);
   const [generatedJson, setGeneratedJson] = useState(null);
+  const fileInputRef = useRef(null);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
+    if (!file) return;
+
+    // Clear any previous state if necessary.
+    setData(null);
+    setGeneratedJson(null);
+
     const reader = new FileReader();
 
     reader.onload = async (event) => {
@@ -16,9 +23,8 @@ function ExcelReader() {
       await workbook.xlsx.load(arrayBuffer);
 
       const worksheet = workbook.getWorksheet(1);
-
       const jsonData = [];
-      worksheet.eachRow({ includeEmpty: true }, (row, rowNumber) => {
+      worksheet.eachRow({ includeEmpty: true }, (row) => {
         const rowData = [];
         row.eachCell({ includeEmpty: true }, (cell) => {
           rowData.push(cell.value);
@@ -28,6 +34,11 @@ function ExcelReader() {
 
       setData(jsonData);
       processData(jsonData);
+
+      // Reset the file input using the ref so the onChange event will fire for new files.
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     };
 
     reader.readAsArrayBuffer(file);
@@ -44,7 +55,6 @@ function ExcelReader() {
         if (index > 7) {
           if (row[21] > 1 && row[21] < 11) {
             const number = row[21];
-
             const components = [];
             for (let i = 1; i <= number; i++) {
               components.push({
@@ -71,7 +81,6 @@ function ExcelReader() {
     setGeneratedJson(processedData);
   };
 
-  console.log(generatedJson);
   const exportToExcel = async () => {
     if (!generatedJson || generatedJson.length === 0) {
       alert("No data to export.");
@@ -105,7 +114,6 @@ function ExcelReader() {
       });
     });
 
-    // Auto-fit columns to content using ExcelJS
     worksheet.columns.forEach((column) => {
       let maxLength = 0;
       column.eachCell({ includeEmpty: true }, (cell) => {
@@ -133,6 +141,7 @@ function ExcelReader() {
           Choose File (XLSX, XLS, CSV)
         </label>
         <input
+          ref={fileInputRef}
           id="file-upload"
           type="file"
           accept=".xlsx, .xls, .csv"
