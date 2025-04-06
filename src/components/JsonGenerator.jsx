@@ -137,7 +137,7 @@ const JsonGenerator = () => {
       <div className="max-w-7xl space-y-6">
         <DropdownCard
           title="კლიენტის მონაცემები"
-          imageSrc="src/assets/image.png"
+          imageSrc="image.png"
           alt="კლიენტის მონაცემები"
         >
           თუ აგზავნით სერვისცენტრიდან ამანათს მაშინ აუცილებელია შეავსოთ "sending
@@ -147,12 +147,12 @@ const JsonGenerator = () => {
         </DropdownCard>
         <DropdownCard
           title="მიმღების მონაცემები"
-          imageSrc="src/assets/photo_2025-03-25_13-54-50.jpg"
+          imageSrc="photo_2025-03-25_13-54-50.jpg"
           alt="მიმღების მონაცემები"
         ></DropdownCard>
         <DropdownCard
           title="ამანთის მონაცემები"
-          imageSrc="src/assets/photo_2025-03-25_17-19-47.jpg"
+          imageSrc="photo_2025-03-25_17-19-47.jpg"
           alt="ამანთის მონაცემები"
         >
           თუ ამანათი არის ადგილებიანი შეგიძლიათ დააჭიროთ ღილაკს "show panel",
