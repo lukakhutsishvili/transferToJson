@@ -27,7 +27,8 @@ function ExcelReader() {
       worksheet.eachRow({ includeEmpty: true }, (row) => {
         const rowData = [];
         row.eachCell({ includeEmpty: true }, (cell) => {
-          rowData.push(cell.value);
+          const value = cell.value;
+          rowData.push(typeof value === "string" ? value.trim() : value);
         });
         jsonData.push(rowData);
       });
