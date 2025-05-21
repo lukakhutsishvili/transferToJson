@@ -2,7 +2,9 @@ import React, { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ExcelToJson from "./ExcelReader";
 import { ChevronDown } from "lucide-react"; // Make sure lucide-react is installed
+// import ChangeExcelFormat from "./changeExcelFormat";
 
+// dropdown component
 const DropdownCard = ({ title, imageSrc, alt, children }) => {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -46,6 +48,7 @@ const DropdownCard = ({ title, imageSrc, alt, children }) => {
   );
 };
 
+//json generator(whole page)
 const JsonGenerator = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [items, setItems] = useState([]);
@@ -134,6 +137,7 @@ const JsonGenerator = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 px-4 pt-10 space-y-4">
+      {/* <ChangeExcelFormat /> */}
       <div className="max-w-7xl space-y-6">
         <DropdownCard
           title="კლიენტის მონაცემები"
