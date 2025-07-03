@@ -85,7 +85,9 @@ const GenerateFromData = () => {
           `COD საკომისიოს გადახდა მიმღების მიერ`,
           `International Tracking Number`,
           `Places/ ადგილებიანი ამანათი`,
-          ` With COD includes operational costs`,
+          `With COD includes operational costs`,
+          `Parcel with return`,
+          `Payment by recipient for returning parcel`,
         ],
       ];
 
@@ -114,6 +116,7 @@ const GenerateFromData = () => {
         row.getCell("R").value = getTrimmedValue(data.comment);
         row.getCell("T").value = "არა";
         row.getCell("U").value = getTrimmedValue(data.orderNumber);
+        row.getCell("X").value = "არა";
 
         // სვეტში "G" (ამანათის რაოდენობა) მოცემული მონაცემების გადამოწმება
         const packageCount = parseInt(data.packageCount);
