@@ -1,48 +1,52 @@
 import React, { useState, useRef } from "react";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
+import { 
+  readExcelFile, 
+  generateComponents, 
+  generateComponentsWithBarcode,
+  formatBarcodesAsString,
+  isBarcodeString,
+  convertBarcodeStringToJson,
+  autoSizeColumns, 
+  isJsonArray, 
+  formatJsonString 
+} from "../utils/excelHelpers";
+import { EXCEL_CONSTANTS, ACCEPTED_FILE_TYPES, EXCEL_EXPORT } from "../utils/constants";
+import { Upload, Download, FileCheck } from "lucide-react";
 
 function ExcelReader() {
   const [data, setData] = useState(null);
   const [generatedJson, setGeneratedJson] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState(null);
+  const [fileName, setFileName] = useState(null);
   const fileInputRef = useRef(null);
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Clear any previous state if necessary.
+    setIsProcessing(true);
+    setError(null);
     setData(null);
     setGeneratedJson(null);
+    setFileName(file.name);
 
-    const reader = new FileReader();
-
-    reader.onload = async (event) => {
-      const arrayBuffer = event.target.result;
-      const workbook = new ExcelJS.Workbook();
-      await workbook.xlsx.load(arrayBuffer);
-
-      const worksheet = workbook.getWorksheet(1);
-      const jsonData = [];
-      worksheet.eachRow({ includeEmpty: true }, (row) => {
-        const rowData = [];
-        row.eachCell({ includeEmpty: true }, (cell) => {
-          const value = cell.value;
-          rowData.push(typeof value === "string" ? value.trim() : value);
-        });
-        jsonData.push(rowData);
-      });
-
+    try {
+      const jsonData = await readExcelFile(file);
       setData(jsonData);
       processData(jsonData);
-
-      // Reset the file input using the ref so the onChange event will fire for new files.
+    } catch (err) {
+      console.error("Error reading file:", err);
+      setError("Failed to read file. Please ensure it's a valid Excel file.");
+      setFileName(null);
+    } finally {
+      setIsProcessing(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
-    };
-
-    reader.readAsArrayBuffer(file);
+    }
   };
 
   const processData = (excelData) => {
@@ -51,112 +55,175 @@ function ExcelReader() {
       return;
     }
 
+    const { 
+      HEADER_ROW_COUNT, 
+      PLACES_COLUMN_INDEX, 
+      MIN_PLACES, 
+      MAX_PLACES,
+      CLIENT_ID_ROW_INDEX,
+      CLIENT_ID_COLUMN_INDEX,
+      SPECIAL_CLIENT_ID,
+      BARCODE_PREFIX
+    } = EXCEL_CONSTANTS;
+
+    // Check if client ID matches special case
+    const clientIdRow = excelData[CLIENT_ID_ROW_INDEX];
+    const clientId = clientIdRow && clientIdRow[CLIENT_ID_COLUMN_INDEX] 
+      ? String(clientIdRow[CLIENT_ID_COLUMN_INDEX]).trim() 
+      : null;
+    
+    const isSpecialClient = clientId === SPECIAL_CLIENT_ID;
+
     const processedData = excelData.map((row, index) => {
-      if (row.length !== 0) {
-        if (index > 7) {
-          if (row[21] > 1 && row[21] < 11) {
-            const number = row[21];
-            const components = [];
-            for (let i = 1; i <= number; i++) {
-              components.push({
-                description: String(i),
-                length: "1",
-                width: "1",
-                height: "1",
-                weight: "1",
-              });
-            }
-            const newRow = [...row];
-            newRow[21] = JSON.stringify(components);
-            return newRow;
-          } else {
-            return row;
-          }
-        } else {
-          return row;
-        }
-      } else {
+      // Skip empty rows
+      if (!row || row.length === 0) {
         return row;
       }
+
+      // Process data rows (skip header rows)
+      if (index > HEADER_ROW_COUNT) {
+        const placesValue = row[PLACES_COLUMN_INDEX];
+        
+        // Check if it's already a barcode string format (e.g., "1234-1; 1234-2; 1234-3")
+        if (isBarcodeString(placesValue)) {
+          // Convert barcode string to JSON array with barcode field
+          const components = convertBarcodeStringToJson(placesValue);
+          const newRow = [...row];
+          newRow[PLACES_COLUMN_INDEX] = JSON.stringify(components);
+          return newRow;
+        }
+        
+        // Check if it's a number (regular case)
+        const placesCount = Number(placesValue);
+        if (placesCount > MIN_PLACES && placesCount <= MAX_PLACES) {
+          const newRow = [...row];
+          
+          if (isSpecialClient) {
+            // Generate components with barcodes for special client
+            const components = generateComponentsWithBarcode(placesCount, BARCODE_PREFIX);
+            // Store as JSON string (not semicolon-separated)
+            newRow[PLACES_COLUMN_INDEX] = JSON.stringify(components);
+          } else {
+            // Regular format: JSON string
+            const components = generateComponents(placesCount);
+            newRow[PLACES_COLUMN_INDEX] = JSON.stringify(components);
+          }
+          
+          return newRow;
+        }
+      }
+
+      return row;
     });
+
     setGeneratedJson(processedData);
   };
 
   const exportToExcel = async () => {
     if (!generatedJson || generatedJson.length === 0) {
-      alert("No data to export.");
+      setError("No data to export. Please upload a file first.");
       return;
     }
 
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet("ProcessedData");
+    setIsProcessing(true);
+    setError(null);
 
-    const dataToWrite = generatedJson.map((row) => {
-      const newRow = [...row];
-      if (
-        typeof newRow[newRow.length - 1] === "string" &&
-        newRow[newRow.length - 1] &&
-        newRow[newRow.length - 1].startsWith("[")
-      ) {
-        try {
-          const parsedJson = JSON.parse(newRow[newRow.length - 1]);
-          newRow[newRow.length - 1] = JSON.stringify(parsedJson, null, 2);
-        } catch (e) {
-          console.error("Error parsing JSON string:", e);
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("ProcessedData");
+
+      // Format JSON strings in the Places column (only if it's JSON, not barcode string)
+      const dataToWrite = generatedJson.map((row) => {
+        const newRow = [...row];
+        const placesCellIndex = EXCEL_CONSTANTS.PLACES_COLUMN_INDEX;
+        
+        if (placesCellIndex < newRow.length) {
+          const placesCell = newRow[placesCellIndex];
+          
+          // Only format if it's a JSON array (not a semicolon-separated barcode string)
+          if (isJsonArray(placesCell)) {
+            newRow[placesCellIndex] = formatJsonString(placesCell);
+          }
+          // If it's a semicolon-separated barcode string, leave it as is
         }
-      }
-      return newRow;
-    });
 
-    dataToWrite.forEach((row) => {
-      const excelRow = worksheet.addRow(row);
-      row.forEach((cell, cellIndex) => {
-        excelRow.getCell(cellIndex + 1).numFmt = "@";
+        return newRow;
       });
-    });
 
-    worksheet.columns.forEach((column) => {
-      let maxLength = 0;
-      column.eachCell({ includeEmpty: true }, (cell) => {
-        const cellValue = cell.value;
-        const cellLength = cellValue ? cellValue.toString().length : 10;
-        maxLength = Math.max(maxLength, cellLength);
+      // Write data to worksheet
+      dataToWrite.forEach((row) => {
+        const excelRow = worksheet.addRow(row);
+        row.forEach((cell, cellIndex) => {
+          excelRow.getCell(cellIndex + 1).numFmt = "@";
+        });
       });
-      column.width = maxLength < 10 ? 10 : maxLength + 2;
-    });
 
-    const excelBuffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([excelBuffer], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
-    });
-    saveAs(blob, "processed_data.xlsx");
+      // Auto-size columns
+      autoSizeColumns(worksheet);
+
+      // Generate and download file
+      const excelBuffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([excelBuffer], {
+        type: EXCEL_EXPORT.MIME_TYPE,
+      });
+      saveAs(blob, "processed_data.xlsx");
+    } catch (err) {
+      console.error("Error exporting file:", err);
+      setError("Failed to export file. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
-    <div className="pt-2 flex font-sans">
-      <div className="mb-6">
-        <label
-          htmlFor="file-upload"
-          className="inline-block px-4 py-2 bg-blue-500 text-white rounded cursor-pointer border-none"
+    <div className="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-lg p-6 mb-6">
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+        <div className="flex-1">
+          <label
+            htmlFor="file-upload"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg cursor-pointer hover:bg-blue-700 transition-colors shadow-md hover:shadow-lg font-medium"
+          >
+            <Upload className="w-5 h-5" />
+            {fileName ? "Change File" : "Choose File"}
+          </label>
+          <input
+            ref={fileInputRef}
+            id="file-upload"
+            type="file"
+            accept={ACCEPTED_FILE_TYPES.EXCEL}
+            onChange={handleFileUpload}
+            className="hidden"
+            disabled={isProcessing}
+          />
+          {fileName && (
+            <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
+              <FileCheck className="w-4 h-4" />
+              <span className="truncate">{fileName}</span>
+            </div>
+          )}
+        </div>
+
+        <button
+          onClick={exportToExcel}
+          disabled={!generatedJson || generatedJson.length === 0 || isProcessing}
+          className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg cursor-pointer hover:bg-green-700 transition-colors shadow-md hover:shadow-lg font-medium disabled:bg-gray-400 disabled:cursor-not-allowed disabled:hover:bg-gray-400"
         >
-          Choose File (XLSX, XLS, CSV)
-        </label>
-        <input
-          ref={fileInputRef}
-          id="file-upload"
-          type="file"
-          accept=".xlsx, .xls, .csv"
-          onChange={handleFileUpload}
-          className="hidden"
-        />
+          <Download className="w-5 h-5" />
+          {isProcessing ? "Processing..." : "Export to Excel"}
+        </button>
       </div>
 
-      <button
-        onClick={exportToExcel}
-        className="px-3 ml-3 mb-6 bg-green-500 text-white rounded cursor-pointer border-none text-lg"
-      >
-        Export to Excel
-      </button>
+      {error && (
+        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          {error}
+        </div>
+      )}
+
+      {generatedJson && generatedJson.length > 0 && (
+        <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+          ✓ File processed successfully. {generatedJson.length} rows ready for export.
+        </div>
+      )}
     </div>
   );
 }
