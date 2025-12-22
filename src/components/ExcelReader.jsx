@@ -60,7 +60,7 @@ function createPlacesJsonFromBarcodes(barcodes, dims) {
     width: 1,
     height: 1,
     weight: 1,
-    trackingCode: barcode,
+    tracking_code: barcode,
   }));
   return JSON.stringify(places);
 }
