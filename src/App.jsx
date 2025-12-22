@@ -1,11 +1,9 @@
-import { useState } from 'react'
-import JsonGenerator from './components/JsonGenerator'
-import { Route, Router, Routes } from 'react-router-dom';
+import { Route, Routes } from "react-router-dom";
+
+import JsonGenerator from "./components/JsonGenerator";
 
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
       <Routes>
         <Route path="/" element={<JsonGenerator />} />
@@ -13,4 +11,4 @@ function App() {
   );
 }
 
-export default App
+export default App;

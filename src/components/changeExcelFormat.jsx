@@ -1,28 +1,30 @@
-import React from "react";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
+
+const OUTPUT_FILE_NAME = "formatted_output.xlsx";
+
+function readFileAsArrayBuffer(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result);
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+// Helper to trim only string values
+function getTrimmedValue(value) {
+  if (typeof value === "string") return value.trim();
+  return value;
+}
 
 const GenerateFromData = () => {
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
-    const readFileAsBuffer = (file) =>
-      new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target.result);
-        reader.onerror = reject;
-        reader.readAsArrayBuffer(file);
-      });
-
-    // Helper to trim only string values
-    const getTrimmedValue = (value) => {
-      if (typeof value === "string") return value.trim();
-      return value;
-    };
-
     try {
-      const buffer = await readFileAsBuffer(file);
+      const buffer = await readFileAsArrayBuffer(file);
 
       const sourceWorkbook = new ExcelJS.Workbook();
       await sourceWorkbook.xlsx.load(buffer);
@@ -160,7 +162,7 @@ const GenerateFromData = () => {
       const blob = new Blob([outputBuffer], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
-      saveAs(blob, "formatted_output.xlsx");
+      saveAs(blob, OUTPUT_FILE_NAME);
     } catch (error) {
       console.error("Error:", error);
       alert("დაფიქსირდა შეცდომა. იხილეთ კონსოლი დეტალებისთვის.");
@@ -170,15 +172,18 @@ const GenerateFromData = () => {
   };
 
   return (
-    <div className=" bg-gray-100 ">
-      <div className="bg-white rounded-2xl shadow-lg p-4 max-w-md w-full text-center">
-        <h2 className=" font-semibold text-gray-800 ">
-          Excel ფაილის ფორმატირება
-        </h2>
-        <p className="text-gray-600 mb-6">
-          აირჩიე .xlsx ან .xls ფაილი ფორმატირებისთვის
-        </p>
-        <label className="cursor-pointer inline-block bg-blue-600 text-white px-4 py-3 rounded-xl hover:bg-blue-700 transition duration-200">
+    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">
+            Excel ფაილის ფორმატირება
+          </h2>
+          <p className="text-sm text-gray-600">
+            აირჩიე .xlsx ან .xls ფაილი ფორმატირებისთვის
+          </p>
+        </div>
+
+        <label className="cursor-pointer inline-flex items-center justify-center bg-blue-600 text-white px-4 py-2.5 rounded-xl hover:bg-blue-700 transition select-none shadow-sm">
           ფაილის არჩევა
           <input
             type="file"
