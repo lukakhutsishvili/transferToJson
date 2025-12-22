@@ -13,7 +13,7 @@ const HEADER_ROW_COUNT = 8;
 const MAX_AUTO_PLACES = 10;
 
 
-const SPECIAL_CLIENT_ID = "405267438";
+const SPECIAL_CLIENT_ID = "205050905";
 const CLIENT_ID_CELL = { rowIndex: 2, colIndex: 1 }; // row 3, column B (0-based indices)
 
 function normalizeCellValue(value) {
