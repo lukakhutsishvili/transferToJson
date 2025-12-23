@@ -34,7 +34,7 @@ function parseBarcodeList(value) {
   // If it's already JSON, don't treat it as barcode list
   if (trimmed.startsWith("[")) return [];
   return trimmed
-    .split(",")
+    .split(";")
     .map((s) => s.trim())
     .filter(Boolean);
 }
