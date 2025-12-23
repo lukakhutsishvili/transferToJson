@@ -28,7 +28,7 @@ function normalizeDimension(value, fallback = "1") {
 
 function parseBarcodeList(value) {
   if (typeof value !== "string") return [];
-  // Example input: "657841-1, 657841-2"
+  // Example input: "657841-2-1, 657841-2-2"
   const trimmed = value.trim();
   if (!trimmed) return [];
   // If it's already JSON, don't treat it as barcode list
@@ -126,11 +126,11 @@ function ExcelReader() {
       const placesValue = row[PLACES_COL_INDEX];
       const isSpecialClient = normalizeCellValue(clientId) === SPECIAL_CLIENT_ID;
 
-      // Special client behavior: if V contains comma-separated barcodes like "657841-1, 657841-2",
+      // Special client behavior: if V contains comma-separated barcodes like "657841-2-1, 657841-2-2",
       // convert it into Places JSON with `barcode` and row dimensions.
       if (isSpecialClient) {
         const barcodes = parseBarcodeList(placesValue);
-        // If there's only one element (e.g. "123" or "657841-1"), do NOT touch it.
+        // If there's only one element (e.g. "123" or "657841-2-1"), do NOT touch it.
         // Only transform when there are 2+ comma-separated barcodes.
         if (barcodes.length > 1) {
           const dims = {
